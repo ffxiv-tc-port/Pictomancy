@@ -39,14 +39,43 @@ public sealed class DemoWindow : Window, IDisposable
 
     private static IDalamudTextureWrap? _iconWrap;
 
-    public DemoWindow() : base("Pictomancy Demo", ImGuiWindowFlags.AlwaysAutoResize)
+    public DemoWindow() : base("Pictomancy Demo")
     {
         IsOpen = false;
+        SizeCondition = ImGuiCond.FirstUseEver;
+        Size = new Vector2(560, 720);
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(360, 240),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
+        };
     }
 
     public void Dispose() { }
 
     public override void Draw()
+    {
+        if (!ImGui.BeginTabBar("##pctdemo_tabs")) return;
+
+        if (ImGui.BeginTabItem("DX"))
+        {
+            DrawDxTab();
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("VFX"))
+        {
+            _vfxTab ??= new VfxTab();
+            _vfxTab.Draw();
+            ImGui.EndTabItem();
+        }
+
+        ImGui.EndTabBar();
+    }
+
+    private VfxTab? _vfxTab;
+
+    private void DrawDxTab()
     {
         ImGui.Checkbox("Draw enabled (master switch)", ref WorldDrawEnabled);
 
