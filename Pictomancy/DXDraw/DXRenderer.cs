@@ -2,6 +2,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using SharpDX.Direct3D11;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Device = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Device;
 
 namespace Pictomancy.DXDraw;
@@ -20,7 +21,7 @@ internal class DXRenderer : IDisposable
     public Sprite? Sprite { get; init; }
     public FullScreenPass FSP { get; init; }
     public ClipZone ClipZone { get; init; }
-    //public UIMaskCapture? UIMaskCapture { get; private set; }
+    public UIMaskCapture? UIMaskCapture { get; private set; }
 
     private readonly DepthStencilState _clipZoneDSS;
     private readonly DepthStencilState _shapeDSS;
@@ -115,14 +116,17 @@ internal class DXRenderer : IDisposable
         FSP = new(RenderContext);
         ClipZone = new(RenderContext, options.MaxClipZones);
 
-        //try
-        //{
-        //    UIMaskCapture = new UIMaskCapture(RenderContext, PctService.HookProvider);
-        //}
-        //catch (Exception e)
-        //{
-        //    PctService.Log.Error(e, "[Pictomancy] Failed to create UIMaskCapture; UIMask.UIMask will fall back to no mask.");
-        //}
+        if (options.EnableUIMaskCapture)
+        {
+            try
+            {
+                UIMaskCapture = new UIMaskCapture(RenderContext, PctService.HookProvider);
+            }
+            catch (Exception e)
+            {
+                PctService.Log.Error(e, "[Pictomancy] Failed to create UIMaskCapture; UIMask.BackbufferSubtraction will fall back to no mask.");
+            }
+        }
 
         var clipZoneDesc = DepthStencilStateDescription.Default();
         clipZoneDesc.IsDepthEnabled = false;
@@ -171,7 +175,7 @@ internal class DXRenderer : IDisposable
         Sprite?.Dispose();
         ClipZone.Dispose();
         FSP.Dispose();
-        //UIMaskCapture?.Dispose();
+        UIMaskCapture?.Dispose();
         _clipZoneDSS.Dispose();
         _shapeDSS.Dispose();
         RenderContext.Dispose();
@@ -207,10 +211,10 @@ internal class DXRenderer : IDisposable
         bool useMask = PctService.Hints.UIMask is UIMask.BackbufferAlpha or UIMask.BackbufferSubtraction
             && PctService.Hints.AutoDraw is not AutoDraw.NativeOverlay;
 
-        //if (useMask && PctService.Hints.UIMask is UIMask.BackbufferSubtraction)
-        //{
-        //    UIMaskCapture?.BeginFrame();
-        //}
+        if (useMask && PctService.Hints.UIMask is UIMask.BackbufferSubtraction)
+        {
+            UIMaskCapture?.BeginFrame();
+        }
 
         FSP.UpdateConstants(RenderContext, new()
         {
@@ -333,16 +337,18 @@ internal class DXRenderer : IDisposable
             device->SwapChain->BackBuffer != null &&
             device->SwapChain->BackBuffer->D3D11Texture2D != null)
         {
-            var backBuffer = new Texture2D((IntPtr)device->SwapChain->BackBuffer->D3D11Texture2D);
+            nint bbPtr = (IntPtr)device->SwapChain->BackBuffer->D3D11Texture2D;
+            Marshal.AddRef(bbPtr);
+            using var backBuffer = new Texture2D(bbPtr);
 
             ShaderResourceView? overrideMaskSRV = null;
-            //if (PctService.Hints.UIMask == UIMask.BackbufferSubtraction
-            //    && PctService.Hints.AutoDraw != AutoDraw.NativeOverlay
-            //    && UIMaskCapture?.HasSnapshot == true)
-            //{
-            //    UIMaskCapture.BuildMask(backBuffer);
-            //    overrideMaskSRV = UIMaskCapture.MaskSRV;
-            //}
+            if (PctService.Hints.UIMask == UIMask.BackbufferSubtraction
+                && PctService.Hints.AutoDraw != AutoDraw.NativeOverlay
+                && UIMaskCapture?.HasSnapshot == true)
+            {
+                UIMaskCapture.BuildMask(backBuffer);
+                overrideMaskSRV = UIMaskCapture.MaskSRV;
+            }
 
             RenderTarget!.ExecuteFSP(RenderContext, backBuffer, FSP, overrideMaskSRV);
         }

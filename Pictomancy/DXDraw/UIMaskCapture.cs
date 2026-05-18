@@ -1,22 +1,34 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility.Signatures;
 using SharpDX.D3DCompiler;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using System.Runtime.InteropServices;
 using Device = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Device;
+using Texture = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Texture;
 using Format = SharpDX.DXGI.Format;
+using ImmediateContext = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.ImmediateContext;
 
 namespace Pictomancy.DXDraw;
 
 internal unsafe class UIMaskCapture : IDisposable
 {
-    private const int OMSetRenderTargetsVTableIndex = 33;
+    [StructLayout(LayoutKind.Explicit, Size = 0x40)]
+    public unsafe struct RenderCommandSetTarget
+    {
+        [FieldOffset(0x0)] public int SwitchType;
+        [FieldOffset(0x4)] public int RenderTargetCount;
+        [FieldOffset(0x8)] public Texture* RenderTarget1;
+        [FieldOffset(0x30)] public Texture* DepthBuffer;
+    }
 
-    private delegate void OMSetRenderTargetsDelegate(nint deviceContext, uint numViews, nint* renderTargetViews, nint depthStencilView);
+    private delegate void ApplySetTargetCommandDelegate(ImmediateContext* self, RenderCommandSetTarget* command);
+
+    [Signature("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? D1 46 23", DetourName = nameof(ApplySetTargetCommandDetour))]
+    private readonly Hook<ApplySetTargetCommandDelegate>? _hook = null;
 
     private readonly RenderContext _ctx;
-    private readonly Hook<OMSetRenderTargetsDelegate>? _hook;
 
     private readonly VertexShader _vs;
     private readonly PixelShader  _ps;
@@ -114,18 +126,14 @@ internal unsafe class UIMaskCapture : IDisposable
 
         _constantBuffer = new(_ctx.Device, 16, ResourceUsage.Default, BindFlags.ConstantBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
 
-        // TY Glyceri for hooking info
         try
         {
-            nint contextPtr = _ctx.Device.ImmediateContext.NativePointer;
-            nint vtable = Marshal.ReadIntPtr(contextPtr);
-            nint omSetPtr = Marshal.ReadIntPtr(vtable, 33 * nint.Size);
-            _hook = hookProvider.HookFromAddress<OMSetRenderTargetsDelegate>(omSetPtr, OMSetRenderTargetsDetour);
-            _hook.Enable();
+            hookProvider.InitializeFromAttributes(this);
+            _hook?.Enable();
         }
         catch (Exception e)
         {
-            PctService.Log.Error(e, "[Pictomancy] UIMaskCapture: failed to install OMSetRenderTargets hook.");
+            PctService.Log.Error(e, "[Pictomancy] UIMaskCapture: failed to install ApplySetTargetCommand hook.");
         }
     }
 
@@ -166,23 +174,23 @@ internal unsafe class UIMaskCapture : IDisposable
         _bbCopy = null;
     }
 
-    private void OMSetRenderTargetsDetour(nint deviceContext, uint numViews, nint* rtvs, nint dsv)
+    private void ApplySetTargetCommandDetour(ImmediateContext* self, RenderCommandSetTarget* command)
     {
         try
         {
-            MaybeCapturePreBind(numViews, rtvs, dsv);
+            MaybeCapturePreBind(command);
         }
         catch (Exception e)
         {
             PctService.Log.Error(e, "[Pictomancy] UIMaskCapture: pre-bind capture failed");
         }
 
-        _hook!.Original(deviceContext, numViews, rtvs, dsv);
+        _hook!.Original(self, command);
     }
 
-    private void MaybeCapturePreBind(uint numViews, nint* rtvs, nint dsv)
+    private void MaybeCapturePreBind(RenderCommandSetTarget* command)
     {
-        if (numViews == 0) return;
+        if (command->RenderTargetCount <= 0) return;
 
         var device = Device.Instance();
         if (device == null
@@ -197,38 +205,31 @@ internal unsafe class UIMaskCapture : IDisposable
         if (targetD3D11 == nint.Zero) return;
 
         bool deviceBackBufferBound = false;
-        for (uint i = 0; i < numViews; i++)
+        if (command->RenderTargetCount == 1)
         {
-            nint rtv = rtvs[i];
-            if (rtv == nint.Zero) continue;
-
-            var view  = new RenderTargetView(rtv);
-            var tex2d = view.Resource.QueryInterfaceOrNull<Texture2D>();
-            if (tex2d == null) continue;
-            if (tex2d.NativePointer == targetD3D11)
+            var tex = command->RenderTarget1;
+            if (tex == null) return;
+            if ((nint)tex->D3D11Texture2D == targetD3D11)
             {
                 deviceBackBufferBound = true;
-                break;
             }
         }
 
         if (!deviceBackBufferBound) return;
         if (_sawDsvBindThisFrame) return;
-        if (dsv != nint.Zero)
+        if (command->DepthBuffer != null)
         {
             _sawDsvBindThisFrame = true;
         }
 
-        EnsureSnapshot(targetD3D11);
-
-        var src = new Texture2D(targetD3D11);
+        Marshal.AddRef(targetD3D11);
+        using var src = new Texture2D(targetD3D11);
+        EnsureSnapshot(src.Description);
         _ctx.Device.ImmediateContext.CopyResource(src, _snapshot);
     }
 
-    private void EnsureSnapshot(nint deviceBackBufferD3D11)
+    private void EnsureSnapshot(Texture2DDescription desc)
     {
-        var src  = new Texture2D(deviceBackBufferD3D11);
-        var desc = src.Description;
 
         if (_snapshot != null
             && _snapshot.Description.Width  == desc.Width
