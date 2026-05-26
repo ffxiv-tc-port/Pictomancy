@@ -90,7 +90,7 @@ using (var drawList = PctService.Draw())
 Set a default for the whole drawlist via `PctDrawHints.DefaultParams`, or pass an override per draw call.
 
 ```c#
-using (var drawList = PctService.Draw(new PctDrawHints
+using (var drawList = PctService.Draw(hints: new PctDrawHints
 {
     DefaultParams = new PctDxParams
     {
@@ -101,13 +101,16 @@ using (var drawList = PctService.Draw(new PctDrawHints
     }
 }))
 
-// Applies drawlist default params:
-drawList.AddCircleFilled(origin, radius, fillColor);
-
-// Applies override params:
-// Project the circle +/- 10 meters vertically
-drawList.AddCircleFilled(origin, radius, fillColor,
-    p: new PctDxParams { ProjectionHeight = 10f });
+if (drawList != null)
+{
+    // Applies drawlist default params:
+    drawList.AddCircleFilled(origin, radius, fillColor);
+    
+    // Applies override params:
+    // Project the circle +/- 10 meters vertically
+    drawList.AddCircleFilled(origin, radius, fillColor,
+        p: new PctDxParams { ProjectionHeight = 10f });
+}
 ```
 
 ##### OccludedAlpha (0 to 1, default 1)
