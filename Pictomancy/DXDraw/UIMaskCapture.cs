@@ -148,7 +148,7 @@ internal unsafe class UIMaskCapture : IDisposable
         DisposeBackBufferCopy();
     }
 
-    private void DisposeSnapshot()
+    internal void DisposeSnapshot()
     {
         _snapshotSRV?.Dispose();
         _snapshot?.Dispose();

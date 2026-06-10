@@ -119,6 +119,7 @@ internal class RenderTarget : IDisposable
         {
             ValidateBackBufferResources(ctx.Device, backBuffer.Description);
             ctx.Context.CopyResource(backBuffer, _backBufferCopy);
+            overrideMaskSRV = _backBufferSRV;
         }
 
         using var localBlend = new BlendState(ctx.Device, BlendStateDescription.Default());
@@ -127,7 +128,7 @@ internal class RenderTarget : IDisposable
         ctx.Context.ClearRenderTargetView(_processedRTV, new());
         ctx.Context.OutputMerger.SetTargets(_processedRTV);
 
-        fsp.Draw(ctx, _baseSRV, overrideMaskSRV ?? _backBufferSRV!);
+        fsp.Draw(ctx, _baseSRV, overrideMaskSRV!);
     }
 
     private void ValidateBackBufferResources(Device device, Texture2DDescription backBufferDesc)

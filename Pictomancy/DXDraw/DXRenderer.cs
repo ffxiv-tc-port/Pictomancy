@@ -46,6 +46,7 @@ internal class DXRenderer : IDisposable
     public bool FanDegraded => FanFill == null;
 
     public bool StrokeDegraded => Stroke == null;
+    private UIMask mask;
 
     public DXRenderer(PctOptions options)
     {
@@ -181,8 +182,9 @@ internal class DXRenderer : IDisposable
         RenderContext.Dispose();
     }
 
-    internal unsafe void BeginFrame()
+    internal unsafe void BeginFrame(UIMask mask)
     {
+        this.mask = mask;
         RenderContext.BeginFrame();
 
         var device = Device.Instance();
@@ -198,22 +200,14 @@ internal class DXRenderer : IDisposable
             CameraPos = renderCam->Origin;
         }
 
-        var rtm = FFXIVClientStructs.FFXIV.Client.Graphics.Render.RenderTargetManager.Instance();
-        if (rtm != null && rtm->DepthStencil != null)
-        {
-            var resolutionScaled = rtm->DepthStencil->ActualWidth != device->Width || rtm->DepthStencil->ActualHeight != device->Height;
-            if (resolutionScaled && PctService.Hints.UIMask is UIMask.BackbufferAlpha)
-            {
-                PctService.Hints = PctService.Hints with { UIMask = UIMask.BackbufferSubtraction };
-            }
-        }
-
-        bool useMask = PctService.Hints.UIMask is UIMask.BackbufferAlpha or UIMask.BackbufferSubtraction
-            && PctService.Hints.AutoDraw is not AutoDraw.NativeOverlay;
-
-        if (useMask && PctService.Hints.UIMask is UIMask.BackbufferSubtraction)
+        bool useMask = mask is UIMask.BackbufferAlpha or UIMask.BackbufferSubtraction;
+        if (mask is UIMask.BackbufferSubtraction)
         {
             UIMaskCapture?.BeginFrame();
+        }
+        else
+        {
+            UIMaskCapture?.DisposeSnapshot();
         }
 
         FSP.UpdateConstants(RenderContext, new()
@@ -342,9 +336,7 @@ internal class DXRenderer : IDisposable
             using var backBuffer = new Texture2D(bbPtr);
 
             ShaderResourceView? overrideMaskSRV = null;
-            if (PctService.Hints.UIMask == UIMask.BackbufferSubtraction
-                && PctService.Hints.AutoDraw != AutoDraw.NativeOverlay
-                && UIMaskCapture?.HasSnapshot == true)
+            if (UIMaskCapture?.HasSnapshot == true)
             {
                 UIMaskCapture.BuildMask(backBuffer);
                 overrideMaskSRV = UIMaskCapture.MaskSRV;

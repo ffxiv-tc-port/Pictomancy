@@ -16,6 +16,7 @@ public class PctDrawList : IDisposable
     internal readonly SceneDepth _sceneDepth;
     internal readonly SceneInfo _sceneInfo;
     internal readonly SceneNormal _sceneNormal;
+    internal readonly AutoDraw _autodraw;
     internal readonly PctOverlayNode? _overlayNode;
     internal readonly ImGuiRenderer _fallbackRenderer;
     internal readonly bool isMyWindow;
@@ -25,7 +26,7 @@ public class PctDrawList : IDisposable
     /// <summary>Default rendering params applied to any shape that doesn't pass an explicit override.</summary>
     public PctDxParams DefaultParams { get; }
 
-    internal PctDrawList(ImDrawListPtr? drawlist, DXRenderer renderer, SceneDepth sceneDepth, SceneInfo sceneInfo, SceneNormal sceneNormal, PctOverlayNode? overlayNode = null, PctDxParams? defaultParams = null)
+    internal PctDrawList(ImDrawListPtr? drawlist, DXRenderer renderer, SceneDepth sceneDepth, SceneInfo sceneInfo, SceneNormal sceneNormal, AutoDraw autoDraw, UIMask mask, PctOverlayNode? overlayNode = null, PctDxParams? defaultParams = null)
     {
         DefaultParams = defaultParams ?? new PctDxParams();
         if (drawlist != null)
@@ -52,9 +53,10 @@ public class PctDrawList : IDisposable
         _sceneDepth = sceneDepth;
         _sceneInfo = sceneInfo;
         _sceneNormal = sceneNormal;
+        _autodraw = autoDraw;
         _overlayNode = overlayNode;
         _texture = null;
-        _renderer.BeginFrame();
+        _renderer.BeginFrame(mask);
         _sceneDepth.Update();
         _sceneInfo.Update();
         _sceneNormal.Update();
@@ -76,7 +78,7 @@ public class PctDrawList : IDisposable
         if (PctService.DrawList == this) PctService.DrawList = null;
 
         PctTexture texture = DrawToTexture();
-        switch (PctService.Hints.AutoDraw)
+        switch (_autodraw)
         {
             case AutoDraw.NativeOverlay:
                 if (_overlayNode == null)
@@ -97,7 +99,7 @@ public class PctDrawList : IDisposable
                 break;
         }
 
-        if (PctService.Hints.AutoDraw is not AutoDraw.None)
+        if (_autodraw is not AutoDraw.None)
         {
             foreach (var (worldPos, radiusPixels, color, numSegments) in _dotQueue)
             {

@@ -3,6 +3,8 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Overlay.UiOverlay;
@@ -29,6 +31,7 @@ public class PctService
     private static VfxRenderer? _vfxRenderer;
     private static OverlayController? _overlayController;
     private static PctOverlayNode? _overlayNode;
+    private static GaolbreakHeartbeatReader _gbHeartbeat;
     public static VfxRenderer VfxRenderer => _vfxRenderer;
 
     internal static PctDrawList DrawList;
@@ -69,6 +72,7 @@ public class PctService
             _sceneDepth = new();
             _sceneInfo = new();
             _sceneNormal = new();
+            _gbHeartbeat = new(pluginInterface);
         }
 
         if (options.EnableVfxRenderer)
@@ -149,12 +153,49 @@ public class PctService
         if (!Hints.DrawInCutscene && IsInCutscene()) return null;
         if (!Hints.DrawWhenFaded && IsFaded()) return null;
 
+        var native = Hints.AutoDraw is AutoDraw.NativeOverlay;
+
+        var mask = Hints.UIMask;
+        if (native)
+        {
+            mask = UIMask.None;
+        }
+        else if (mask is UIMask.Default)
+        {
+            if (_gbHeartbeat.Alive())
+            {
+                mask = UIMask.None;
+            }
+            else
+            {
+                mask = UIMask.BackbufferAlpha;
+            }
+        }
+        if (mask is UIMask.BackbufferAlpha)
+        {
+            unsafe
+            {
+                var device = Device.Instance();
+                var rtm = RenderTargetManager.Instance();
+                if (rtm != null && rtm->DepthStencil != null)
+                {
+                    var resolutionScaled = rtm->DepthStencil->ActualWidth != device->Width || rtm->DepthStencil->ActualHeight != device->Height;
+                    if (resolutionScaled)
+                    {
+                        mask = UIMask.BackbufferSubtraction;
+                    }
+                }
+            }
+        }
+
         return DrawList = new PctDrawList(
             imguidrawlist,
             _dxRenderer,
             _sceneDepth,
             _sceneInfo,
             _sceneNormal,
+            Hints.AutoDraw,
+            mask,
             _overlayNode,
             Hints.DefaultParams
         );
