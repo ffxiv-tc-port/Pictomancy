@@ -162,30 +162,7 @@ public class PctService
         }
         else if (mask is UIMask.Default)
         {
-            if (_gbHeartbeat.Alive())
-            {
-                mask = UIMask.None;
-            }
-            else
-            {
-                mask = UIMask.BackbufferAlpha;
-            }
-        }
-        if (mask is UIMask.BackbufferAlpha)
-        {
-            unsafe
-            {
-                var device = Device.Instance();
-                var rtm = RenderTargetManager.Instance();
-                if (rtm != null && rtm->DepthStencil != null)
-                {
-                    var resolutionScaled = rtm->DepthStencil->ActualWidth != device->Width || rtm->DepthStencil->ActualHeight != device->Height;
-                    if (resolutionScaled)
-                    {
-                        mask = UIMask.BackbufferSubtraction;
-                    }
-                }
-            }
+            mask = _gbHeartbeat.Alive() || IsResolutionScaled() ? UIMask.None : UIMask.BackbufferAlpha;
         }
 
         return DrawList = new PctDrawList(
@@ -204,6 +181,15 @@ public class PctService
     private static bool IsInCutscene()
     {
         return Condition[ConditionFlag.OccupiedInCutSceneEvent] || Condition[ConditionFlag.WatchingCutscene78];
+    }
+
+    private static unsafe bool IsResolutionScaled()
+    {
+        var device = Device.Instance();
+        var rtm = RenderTargetManager.Instance();
+        if (device == null || rtm == null || rtm->DepthStencil == null) return false;
+        return rtm->DepthStencil->ActualWidth != device->Width
+            || rtm->DepthStencil->ActualHeight != device->Height;
     }
 
     private unsafe static bool IsFaded()

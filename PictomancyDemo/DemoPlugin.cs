@@ -30,7 +30,7 @@ public sealed class DemoPlugin : IDalamudPlugin
         Log.Information("[PictomancyDemo] ctor: services injected");
         try
         {
-            _pctCtx = PctService.Initialize(PluginInterface, new PctOptions { EnableKtkOutput = true, EnableUIMaskCapture = true });
+            _pctCtx = PctService.Initialize(PluginInterface, new PctOptions { EnableKtkOutput = true });
             Log.Information("[PictomancyDemo] PctService.Initialize OK");
         }
         catch (Exception ex)

@@ -21,7 +21,6 @@ internal class DXRenderer : IDisposable
     public Sprite? Sprite { get; init; }
     public FullScreenPass FSP { get; init; }
     public ClipZone ClipZone { get; init; }
-    public UIMaskCapture? UIMaskCapture { get; private set; }
 
     private readonly DepthStencilState _clipZoneDSS;
     private readonly DepthStencilState _shapeDSS;
@@ -117,18 +116,6 @@ internal class DXRenderer : IDisposable
         FSP = new(RenderContext);
         ClipZone = new(RenderContext, options.MaxClipZones);
 
-        if (options.EnableUIMaskCapture)
-        {
-            try
-            {
-                UIMaskCapture = new UIMaskCapture(RenderContext, PctService.HookProvider);
-            }
-            catch (Exception e)
-            {
-                PctService.Log.Error(e, "[Pictomancy] Failed to create UIMaskCapture; UIMask.BackbufferSubtraction will fall back to no mask.");
-            }
-        }
-
         var clipZoneDesc = DepthStencilStateDescription.Default();
         clipZoneDesc.IsDepthEnabled = false;
         clipZoneDesc.DepthWriteMask = DepthWriteMask.Zero;
@@ -176,7 +163,6 @@ internal class DXRenderer : IDisposable
         Sprite?.Dispose();
         ClipZone.Dispose();
         FSP.Dispose();
-        UIMaskCapture?.Dispose();
         _clipZoneDSS.Dispose();
         _shapeDSS.Dispose();
         RenderContext.Dispose();
@@ -200,15 +186,7 @@ internal class DXRenderer : IDisposable
             CameraPos = renderCam->Origin;
         }
 
-        bool useMask = mask is UIMask.BackbufferAlpha or UIMask.BackbufferSubtraction;
-        if (mask is UIMask.BackbufferSubtraction)
-        {
-            UIMaskCapture?.BeginFrame();
-        }
-        else
-        {
-            UIMaskCapture?.DisposeSnapshot();
-        }
+        bool useMask = mask is UIMask.BackbufferAlpha;
 
         FSP.UpdateConstants(RenderContext, new()
         {
@@ -335,14 +313,7 @@ internal class DXRenderer : IDisposable
             Marshal.AddRef(bbPtr);
             using var backBuffer = new Texture2D(bbPtr);
 
-            ShaderResourceView? overrideMaskSRV = null;
-            if (UIMaskCapture?.HasSnapshot == true)
-            {
-                UIMaskCapture.BuildMask(backBuffer);
-                overrideMaskSRV = UIMaskCapture.MaskSRV;
-            }
-
-            RenderTarget!.ExecuteFSP(RenderContext, backBuffer, FSP, overrideMaskSRV);
+            RenderTarget!.ExecuteFSP(RenderContext, backBuffer, FSP);
         }
         else
         {

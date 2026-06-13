@@ -144,12 +144,10 @@ UI masking is used to hide the pictomancy overlay behind the native UI.
 * `Default` uses the best possible mask solution.
     1. `None` if [Gaolbreak](https://github.com/sourpuh/ffxiv_gaolbreak) or NativeOverlay is active
     2. `BackBufferAlpha`
-    3. `BackBufferSubtraction`
 * `None` does not mask the UI, which means the UI is covered unless using [Gaolbreak](https://github.com/sourpuh/ffxiv_gaolbreak) or NativeOverlay.
-* `BackbufferAlpha` is the best* UI mask but it does not work with 3D resolution scaling.
-    * `BackbufferAlpha` will fallback to `BackbufferSubtraction` when it detects 3D resolution scaling, so it's a safe default option.
+* `BackbufferAlpha` is the only UI mask; it does not work with 3D resolution scaling.
+    * `BackbufferAlpha` will fallback to `None` when it detects 3D resolution scaling.
     * *Some locations in the game have noise in the BackBuffer alpha, such as O8 (Kefka).
-* `BackbufferSubtraction` that works with 3D resolution scaling. It does not handle partially transparent UI very well.
 * AutoDraw supports a NativeOverlay option which draws behind the native UI but has two issues:
     1. It does not display over Nameplates.
     1. It lags behind by one frame which causes ghosting effects when moving.

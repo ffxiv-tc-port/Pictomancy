@@ -19,13 +19,6 @@ public sealed class PctOptions
     /// <summary>Initialize the VFX renderer.</summary>
     public bool EnableVfxRenderer { get; init; } = true;
 
-    /// <summary>
-    /// Install the OMSetRenderTargets hook used by <see cref="UIMask.BackbufferSubtraction"/> to capture the
-    /// pre-UI frame. Disabled by default because the hook has caused crashes for some users when other
-    /// overlay tools (RTSS, ReShade, Special K, etc.) have already wrapped the D3D11 device.
-    /// </summary>
-    public bool EnableUIMaskCapture { get; init; } = false;
-
     /// <summary>Max fan instances (donuts, cones, filled circles, arcs) drawn per frame.</summary>
     public int MaxFans { get; init; } = 2048;
 
