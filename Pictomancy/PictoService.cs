@@ -37,8 +37,20 @@ public class PictoService
     public static void InitializeDxRenderer(IDalamudPluginInterface pluginInterface)
     {
         InitializePluginServices(pluginInterface);
-        _dxRenderer = new();
-        _addonClipper = new();
+        try
+        {
+            _dxRenderer = new();
+            _addonClipper = new();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // 只攔 RenderContext 對「原生繪製裝置取不到」擲出的受控例外：
+            // 讓外掛照樣載入，只是 Draw() 一律回 null（fail-closed，不畫）。
+            // 改這裡之前的行為是對 null 解參考 → AccessViolationException → 整個遊戲被帶走。
+            _dxRenderer = null;
+            _addonClipper = null;
+            Log.Error(ex, "[Pictomancy] DX renderer unavailable; overlay drawing disabled.");
+        }
     }
 
     public static void InitializeVfxRenderer(IDalamudPluginInterface pluginInterface)
@@ -100,6 +112,9 @@ public class PictoService
         Hints = hints ?? new();
         if (Hints.DrawInCutscene || IsInCutscene()) return null;
         if (Hints.DrawWhenFaded || IsFaded()) return null;
+        // 🔴 fail-closed：原生繪製狀態取不到就整幀不畫。Draw() 本來就約定「不能畫時回 null」，
+        //    呼叫端都已經在處理 null，所以這是既有契約內的安全出口，不會回退任何行為。
+        if (!DXRenderer.IsRenderStateAvailable()) return null;
 
         return DrawList = new PctDrawList(
             imguidrawlist ?? ImGui.GetBackgroundDrawList(),

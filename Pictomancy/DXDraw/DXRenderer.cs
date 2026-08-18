@@ -99,9 +99,23 @@ internal class DXRenderer : IDisposable
         RenderContext.Dispose();
     }
 
+    /// <summary>
+    /// 這一幀有沒有可用的原生繪製狀態。
+    /// 🔴 Device.Instance() 是 isPointer:true 的靜態位址，取出來的值可以合法為 null
+    /// （例如裝置重建、切換解析度的空窗），此時整幀不畫（fail-closed）。
+    /// Control.Instance() 相對地是 isPointer:false，產生的程式碼在特徵碼失配時擲例外、
+    /// 成功時回傳靜態結構本身的位址，**不會**回 null，所以不需要（也不該）對它判空。
+    /// </summary>
+    internal static unsafe bool IsRenderStateAvailable() => Device.Instance() != null;
+
     internal unsafe void BeginFrame()
     {
         var device = Device.Instance();
+        // 已由 PictoService.Draw() 的 IsRenderStateAvailable() 閘門擋掉；這裡是縱深防禦，
+        // 寧可擲受控例外，也不要對 null 解參考換來攔不到的 AccessViolationException。
+        if (device == null)
+            throw new InvalidOperationException("[Pictomancy] Graphics Device instance became null during BeginFrame.");
+
         ViewportSize = new(device->Width, device->Height);
         ViewProj = *(SharpDX.Matrix*)&Control.Instance()->ViewProjectionMatrix;
 

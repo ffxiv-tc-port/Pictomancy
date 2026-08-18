@@ -12,6 +12,12 @@ internal class ImGuiRenderer
     public unsafe ImGuiRenderer(ImDrawListPtr drawList)
     {
         this.drawList = drawList;
+        // 📌 這裡刻意不對 Control.Instance() 判空——那會是死碼。
+        //    Control 的宣告是 [StaticAddress("4C 8D 35 ...", 3)]，isPointer 預設 false，
+        //    產生的程式碼在特徵碼失配時擲 ThrowNullAddress，成功時回傳靜態結構本身的位址，
+        //    永遠不會回 null。（會回 null 的是 isPointer:true 那類，例如 Device/FateManager/
+        //    LayoutWorld/EventFramework——那些才需要判空。）
+        //    CameraManager.Instance() 只是 (CameraManager*)Control.Instance() 的轉型，同理。
         viewProj = Control.Instance()->ViewProjectionMatrix;
 
         // The view matrix in CameraManager is 1 frame stale compared to the Control viewproj matrix.
