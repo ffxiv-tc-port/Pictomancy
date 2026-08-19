@@ -91,7 +91,7 @@ internal class AddonClipper
 
         for (int i = 6; i <= 23; i++)
         {
-            AtkResNode* slotNode = addon->UldManager.NodeList[i];
+            AtkResNode* slotNode = GetNodeOrNull(addon, i);
             if (slotNode is null) continue;
 
             if (slotNode->IsVisible())
@@ -117,7 +117,7 @@ internal class AddonClipper
 
         for (int i = 4; i <= 11; i++)
         {
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[i]);
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, i));
         }
     }
 
@@ -132,8 +132,10 @@ internal class AddonClipper
         AtkUnitList* loadedUnitsList = &manager->AtkUnitManager.AllLoadedUnitsList;
         if (loadedUnitsList == null) { return; }
 
+        // Count 由遊戲寫入,超出 Entries 容量時夾住,不要越界讀。
+        int unitCount = Math.Min((int)loadedUnitsList->Count, loadedUnitsList->Entries.Length);
         string name = "";
-        for (int i = 0; i < loadedUnitsList->Count; i++)
+        for (int i = 0; i < unitCount; i++)
         {
             try
             {
@@ -182,25 +184,26 @@ internal class AddonClipper
     {
         var addon = GetVisibleAddonOrNull("_CastBar", 9);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3], scale: _resourceBarScale);
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[8], scale: new(0.95f, 0.85f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 3), scale: _resourceBarScale);
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 8), scale: new(0.95f, 0.85f));
     }
     private unsafe void ClipMainTargetInfo()
     {
         var addon = GetVisibleAddonOrNull("_TargetInfoMainTarget", 11);
         if (addon == null) return;
-        var gaugeBar = addon->UldManager.NodeList[5];
+        var gaugeBar = GetNodeOrNull(addon, 5);
         if (gaugeBar == null || !gaugeBar->IsVisible()) return;
-        ClipAtkNodeRectangle(gaugeBar->GetAsAtkComponentNode()->Component->UldManager.NodeList[0]);
-        if (addon->UldManager.NodeList[9]->IsVisible())
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[10]);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(gaugeBar, 0));
+        var nameNode = GetNodeOrNull(addon, 9);
+        if (nameNode != null && nameNode->IsVisible())
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 10));
     }
 
     private unsafe void ClipTargetInfoCastBar()
     {
         var addon = GetVisibleAddonOrNull("_TargetInfoCastBar", 3);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[2], scale: new Vector2(0.93f, 0.42f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 2), scale: new Vector2(0.93f, 0.42f));
     }
 
     private unsafe void ClipTargetInfoStatus()
@@ -209,18 +212,18 @@ internal class AddonClipper
         if (addon == null) return;
         for (int i = 2; i <= 31; i++)
         {
-            var status = addon->UldManager.NodeList[i];
+            var status = GetNodeOrNull(addon, i);
             if (status == null || !status->IsVisible()) continue;
-            ClipAtkNodeRectangle(status->GetAsAtkComponentNode()->Component->UldManager.NodeList[1]);
-            ClipAtkNodeRectangle(status->GetAsAtkComponentNode()->Component->UldManager.NodeList[2], scale: _gaugeTextScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(status, 1));
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(status, 2), scale: _gaugeTextScale);
         }
     }
     private unsafe void ClipFocusTarget()
     {
         var addon = GetVisibleAddonOrNull("_FocusTargetInfo", 16);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[2]);
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[16]);
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 2));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 16));
     }
     private unsafe void ClipActionBars()
     {
@@ -230,9 +233,9 @@ internal class AddonClipper
             if (addon == null) continue;
             for (int i = 9; i <= 20; i++)
             {
-                var hotbarBtn = addon->UldManager.NodeList[i];
+                var hotbarBtn = GetNodeOrNull(addon, i);
                 if (hotbarBtn == null || !hotbarBtn->IsVisible()) continue;
-                ClipAtkNodeRectangle(hotbarBtn->GetAsAtkComponentNode()->Component->UldManager.NodeList[0]);
+                ClipAtkNodeRectangle(GetComponentNodeOrNull(hotbarBtn, 0));
             }
         }
     }
@@ -244,22 +247,22 @@ internal class AddonClipper
             if (addon == null) return;
             for (int i = 8; i <= 11; i++)
             {
-                ClipCrossButtonGroup(addon->UldManager.NodeList[i]);
+                ClipCrossButtonGroup(GetNodeOrNull(addon, i));
             }
         }
 
         {
             var addon = GetVisibleAddonOrNull("_ActionDoubleCrossL", 7);
             if (addon == null) return;
-            ClipCrossButtonGroup(addon->UldManager.NodeList[5]);
-            ClipCrossButtonGroup(addon->UldManager.NodeList[6]);
+            ClipCrossButtonGroup(GetNodeOrNull(addon, 5));
+            ClipCrossButtonGroup(GetNodeOrNull(addon, 6));
         }
 
         {
             var addon = GetVisibleAddonOrNull("_ActionDoubleCrossR", 7);
             if (addon == null) return;
-            ClipCrossButtonGroup(addon->UldManager.NodeList[5]);
-            ClipCrossButtonGroup(addon->UldManager.NodeList[6]);
+            ClipCrossButtonGroup(GetNodeOrNull(addon, 5));
+            ClipCrossButtonGroup(GetNodeOrNull(addon, 6));
         }
     }
 
@@ -268,7 +271,7 @@ internal class AddonClipper
         if (buttonGroup == null || !buttonGroup->IsVisible()) return;
         for (int j = 0; j <= 3; j++)
         {
-            ClipAtkNodeRectangle(buttonGroup->GetAsAtkComponentNode()->Component->UldManager.NodeList[j]);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(buttonGroup, j));
         }
     }
 
@@ -281,10 +284,10 @@ internal class AddonClipper
 
             for (int i = 5; i <= 24; i++)
             {
-                var status = addon->UldManager.NodeList[i];
+                var status = GetNodeOrNull(addon, i);
                 if (status == null || !status->IsVisible()) continue;
-                ClipAtkNodeRectangle(status->GetAsAtkComponentNode()->Component->UldManager.NodeList[1]);
-                ClipAtkNodeRectangle(status->GetAsAtkComponentNode()->Component->UldManager.NodeList[2], scale: _gaugeTextScale);
+                ClipAtkNodeRectangle(GetComponentNodeOrNull(status, 1));
+                ClipAtkNodeRectangle(GetComponentNodeOrNull(status, 2), scale: _gaugeTextScale);
             }
         }
     }
@@ -295,12 +298,10 @@ internal class AddonClipper
         if (addon == null) return;
         for (int i = 1; i <= 10; i++)
         {
-            AtkResNode* node = addon->UldManager.NodeList[i];
+            AtkResNode* node = GetNodeOrNull(addon, i);
             if (node == null || !node->IsVisible()) continue;
 
-            AtkComponentNode* component = node->GetAsAtkComponentNode();
-            if (component == null || component->Component->UldManager.NodeListCount < 1) continue;
-            ClipAtkNodeRectangle(component->Component->UldManager.NodeList[1]);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(node, 1));
         }
     }
 
@@ -309,34 +310,34 @@ internal class AddonClipper
         var addon = GetVisibleAddonOrNull("_ParameterWidget", 3);
         if (addon == null) return;
         // HP
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[2]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 2), 0), scale: _resourceBarScale);
         // MP
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[1]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 1), 0), scale: _resourceBarScale);
     }
     private unsafe void ClipLimitBreak()
     {
         var addon = GetVisibleAddonOrNull("_LimitBreak", 5);
         if (addon == null) return;
-        if (addon->UldManager.NodeList[2]->DrawFlags == 0)
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[2]);
-        if (addon->UldManager.NodeList[3]->DrawFlags == 0)
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]);
-        if (addon->UldManager.NodeList[4]->DrawFlags == 0)
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[4]);
+        for (int i = 2; i <= 4; i++)
+        {
+            var barNode = GetNodeOrNull(addon, i);
+            if (barNode != null && barNode->DrawFlags == 0)
+                ClipAtkNodeRectangle(barNode);
+        }
     }
     private unsafe void ClipChat()
     {
         var addon = GetVisibleAddonOrNull("ChatLog");
         if (addon == null) return;
-        // ClipAtkNodeRectangle(addon->UldManager.NodeList[3], null, 0.5f, true);
+        // ClipAtkNodeRectangle(GetNodeOrNull(addon, 3), null, 0.5f, true);
     }
     private unsafe void ClipMinimap()
     {
         var addon = GetVisibleAddonOrNull("_NaviMap", 16);
         if (addon == null) return;
-        ClipAtkNodeCircle(addon->UldManager.NodeList[6]);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[8]);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[15]);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 6));
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 8));
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 15));
     }
     private unsafe void ClipMainCommand()
     {
@@ -344,7 +345,7 @@ internal class AddonClipper
         if (addon == null) return;
         for (int i = 1; i <= 7; i++)
         {
-            ClipAtkNodeCircle(addon->UldManager.NodeList[i]);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, i));
         }
     }
 
@@ -354,105 +355,103 @@ internal class AddonClipper
         if (addon == null) return;
         for (int i = 1; i <= 50; i++)
         {
-            AtkResNode* node = addon->UldManager.NodeList[i];
+            AtkResNode* node = GetNodeOrNull(addon, i);
             if (node == null || !node->IsVisible()) continue;
 
-            AtkComponentNode* component = node->GetAsAtkComponentNode();
-            if (component == null || component->Component->UldManager.NodeListCount < 5) continue;
-            ClipAtkNodeRectangle(component->Component->UldManager.NodeList[4]);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(node, 4));
         }
     }
     private unsafe void ClipPld()
     {
         var addon = GetVisibleAddonOrNull("JobHudPLD0", 5);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
     }
 
     private unsafe void ClipWar()
     {
         var addon = GetVisibleAddonOrNull("JobHudWAR0", 5);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
     }
     private unsafe void ClipDrk()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudDRK0", 5);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudDRK1", 6);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[5], scale: _diamondScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 5), scale: _diamondScale);
         }
     }
     private unsafe void ClipGnb()
     {
         var addon = GetVisibleAddonOrNull("JobHudGNB0", 7);
         if (addon == null) return;
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[4], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[5], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 4), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 5), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
     }
     private unsafe void ClipMnk()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudMNK0", 30);
             if (addon == null) return;
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[6]);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[7]);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[8]);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[11], scale: new(0.7f));
-            ClipAtkNodeCircle(addon->UldManager.NodeList[14], scale: new(0.7f));
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[21], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[22], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[26], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[29], scale: _diamondScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[19], scale: new(0.7f));
-            ClipAtkNodeCircle(addon->UldManager.NodeList[24], scale: new(0.7f));
-            ClipAtkNodeCircle(addon->UldManager.NodeList[28], scale: new(0.7f));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 6));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 7));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 8));
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 11), scale: new(0.7f));
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 14), scale: new(0.7f));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 21), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 22), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 26), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 29), scale: _diamondScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 19), scale: new(0.7f));
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 24), scale: new(0.7f));
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 28), scale: new(0.7f));
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudMNK1", 8);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3], scale: new(0.55f));
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[4], scale: new(0.55f));
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[5], scale: new(0.55f));
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[6], scale: new(0.55f));
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[7], scale: new(0.55f));
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 3), scale: new(0.55f));
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 4), scale: new(0.55f));
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 5), scale: new(0.55f));
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 6), scale: new(0.55f));
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 7), scale: new(0.55f));
         }
     }
     private unsafe void ClipDrg()
     {
         var addon = GetVisibleAddonOrNull("JobHudDRG0", 9);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[7], scale: new(0.7f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[8], scale: new(0.7f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 7), scale: new(0.7f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 8), scale: new(0.7f));
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
     }
     private unsafe void ClipNin()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudNIN0", 5);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudNIN1v70", 8);
             if (addon == null) return;
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[3], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[4], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[5], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[7], scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 3), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 4), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 5), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 7), scale: _diamondScale);
         }
     }
 
@@ -461,19 +460,19 @@ internal class AddonClipper
         {
             var addon = GetVisibleAddonOrNull("JobHudSAM0", 9);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[7], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[8], scale: _diamondScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 7), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 8), scale: _diamondScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudSAM1", 12);
             if (addon == null) return;
             var scale = new Vector2(0.6f);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: scale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[7], scale: scale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[11], scale: scale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: scale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 7), scale: scale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 11), scale: scale);
         }
     }
     private unsafe void ClipRpr()
@@ -481,19 +480,19 @@ internal class AddonClipper
         {
             var addon = GetVisibleAddonOrNull("JobHudRRP0", 8);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[6]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[7], scale: _gaugeTextScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 6), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 7), scale: _gaugeTextScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudRRP1", 7);
             if (addon == null) return;
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[2], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[3], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[4], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[5], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 2), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 3), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 4), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 5), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
         }
     }
     private unsafe void ClipVpr()
@@ -501,155 +500,155 @@ internal class AddonClipper
         {
             var addon = GetVisibleAddonOrNull("JobHudRDB0", 10);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[5]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale * new Vector2(-1, 1));
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[7], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[8], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[9], scale: _diamondScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 5), 0), scale: _resourceBarScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale * new Vector2(-1, 1));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 7), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 8), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 9), scale: _diamondScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudRDB1", 33);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[25]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[26], scale: _gaugeTextScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[29], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[30], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[31], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[32], scale: _diamondScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 25), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 26), scale: _gaugeTextScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 29), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 30), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 31), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 32), scale: _diamondScale);
         }
     }
     private unsafe void ClipWhm()
     {
         var addon = GetVisibleAddonOrNull("JobHudWHM0", 13);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[6], scale: new(0.55f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[7], scale: new(0.55f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[8], scale: new(0.55f));
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[10], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[11], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[12], scale: _diamondScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 6), scale: new(0.55f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 7), scale: new(0.55f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 8), scale: new(0.55f));
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 10), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 11), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 12), scale: _diamondScale);
     }
     private unsafe void ClipSch()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudACN0", 5);
             if (addon == null) return;
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[2], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[3], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[4], scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 2), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 3), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 4), scale: _diamondScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudSCH0", 12);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
         }
     }
     private unsafe void ClipAst()
     {
         var addon = GetVisibleAddonOrNull("JobHudAST0", 10);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[6], scale: new(0.75f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[7], scale: new(0.75f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[8], scale: new(0.75f));
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[9], scale: new(0.75f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 6), scale: new(0.75f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 7), scale: new(0.75f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 8), scale: new(0.75f));
+        ClipAtkNodeRectangle(GetNodeOrNull(addon, 9), scale: new(0.75f));
     }
     private unsafe void ClipSge()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudGFF0", 2);
             if (addon == null) return;
-            ClipAtkNodeCircle(addon->UldManager.NodeList[1]);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 1));
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudGFF1", 12);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[5], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[7], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[9], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[10], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[11], scale: _diamondScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 5), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 7), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 9), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 10), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 11), scale: _diamondScale);
         }
     }
     private unsafe void ClipBrd()
     {
         var addon = GetVisibleAddonOrNull("JobHudBRD0", 14);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[4]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[8], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[9], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[10], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[11], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[12], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[13], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[14], scale: _diamondScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[5], scale: _gaugeTextScale);
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[16]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[17], scale: _gaugeTextScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 4), 0), scale: _resourceBarScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 8), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 9), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 10), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 11), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 12), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 13), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 14), scale: _diamondScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 5), scale: _gaugeTextScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 16), 0), scale: _resourceBarScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 17), scale: _gaugeTextScale);
     }
     private unsafe void ClipMch()
     {
         var addon = GetVisibleAddonOrNull("JobHudMCH0", 10);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[4], scale: _gaugeTextScale);
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[8]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[9], scale: _gaugeTextScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 4), scale: _gaugeTextScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 8), 0), scale: _resourceBarScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 9), scale: _gaugeTextScale);
     }
     private unsafe void ClipDnc()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudDNC1", 26);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[19]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[20], scale: _gaugeTextScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[22], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[23], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[24], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[25], scale: _diamondScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 19), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 20), scale: _gaugeTextScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 22), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 23), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 24), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 25), scale: _diamondScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudDNC0", 26);
             if (addon == null) return;
-            ClipAtkNodeCircle(addon->UldManager.NodeList[27], scale: new(0.7f));
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[34]);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[35]);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[36]);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[37]);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 27), scale: new(0.7f));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 34));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 35));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 36));
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 37));
         }
     }
     private unsafe void ClipBlm()
     {
         var addon = GetVisibleAddonOrNull("JobHudBLM0", 21);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[4]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[5], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[7], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[13], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[14], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[15], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[20], scale: _diamondScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 4), 0), scale: _resourceBarScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 5), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 7), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 13), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 14), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 15), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 20), scale: _diamondScale);
     }
     private unsafe void ClipSmn()
     {
         {
             var addon = GetVisibleAddonOrNull("JobHudSMN0", 4);
             if (addon == null) return;
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[2], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[3], scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 2), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 3), scale: _diamondScale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudSMN1", 12);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[6]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: new(0.4f, 0.6f));
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[7]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _diamondScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[8]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: new(0.5f, 0.6f));
-            ClipAtkNodeCircle(addon->UldManager.NodeList[11]->GetAsAtkComponentNode()->Component->UldManager.NodeList[1]);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 6), 0), scale: new(0.4f, 0.6f));
+            ClipAtkNodeDiamond(GetComponentNodeOrNull(GetNodeOrNull(addon, 7), 0), scale: _diamondScale);
+            ClipAtkNodeCircle(GetComponentNodeOrNull(GetNodeOrNull(addon, 8), 0), scale: new(0.5f, 0.6f));
+            ClipAtkNodeCircle(GetComponentNodeOrNull(GetNodeOrNull(addon, 11), 1));
         }
     }
 
@@ -657,14 +656,14 @@ internal class AddonClipper
     {
         var addon = GetVisibleAddonOrNull("JobHudRDM0", 15);
         if (addon == null) return;
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeRectangle(addon->UldManager.NodeList[4]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[15], scale: _gaugeTextScale);
-        ClipAtkNodeCircle(addon->UldManager.NodeList[16], scale: _gaugeTextScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[6], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[12], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[13], scale: _diamondScale);
-        ClipAtkNodeDiamond(addon->UldManager.NodeList[14], scale: _diamondScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+        ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 4), 0), scale: _resourceBarScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 15), scale: _gaugeTextScale);
+        ClipAtkNodeCircle(GetNodeOrNull(addon, 16), scale: _gaugeTextScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 6), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 12), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 13), scale: _diamondScale);
+        ClipAtkNodeDiamond(GetNodeOrNull(addon, 14), scale: _diamondScale);
     }
     private unsafe void ClipPct()
     {
@@ -672,23 +671,52 @@ internal class AddonClipper
             var addon = GetVisibleAddonOrNull("JobHudRPM0", 12);
             if (addon == null) return;
             var scale = new Vector2(0.8f, 0.75f);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[4], scale: scale);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[7], scale: scale);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[10], scale: scale);
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[11], scale: scale);
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 4), scale: scale);
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 7), scale: scale);
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 10), scale: scale);
+            ClipAtkNodeRectangle(GetNodeOrNull(addon, 11), scale: scale);
         }
         {
             var addon = GetVisibleAddonOrNull("JobHudRPM1", 14);
             if (addon == null) return;
-            ClipAtkNodeRectangle(addon->UldManager.NodeList[3]->GetAsAtkComponentNode()->Component->UldManager.NodeList[0], scale: _resourceBarScale);
-            ClipAtkNodeCircle(addon->UldManager.NodeList[7]);
+            ClipAtkNodeRectangle(GetComponentNodeOrNull(GetNodeOrNull(addon, 3), 0), scale: _resourceBarScale);
+            ClipAtkNodeCircle(GetNodeOrNull(addon, 7));
 
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[9], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[10], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[11], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[12], scale: _diamondScale);
-            ClipAtkNodeDiamond(addon->UldManager.NodeList[13], scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 9), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 10), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 11), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 12), scale: _diamondScale);
+            ClipAtkNodeDiamond(GetNodeOrNull(addon, 13), scale: _diamondScale);
         }
+    }
+
+    /// <summary>
+    /// 取得 addon 節點清單中指定索引的節點。節點清單指標為 null、索引越界(以 NodeListCount 為上界)
+    /// 或該格為 null 時回 null;呼叫端只會少畫一塊裁切區域,不會裸解參考。
+    /// </summary>
+    private static unsafe AtkResNode* GetNodeOrNull(AtkUnitBase* addon, int index)
+    {
+        if (addon == null) return null;
+        var nodeList = addon->UldManager.NodeList;
+        if (nodeList == null || index < 0 || index >= addon->UldManager.NodeListCount) return null;
+        return nodeList[index];
+    }
+
+    /// <summary>
+    /// 取得節點底下元件的子節點。鏈上每一跳都可能取不到:節點本身、
+    /// GetAsAtkComponentNode()(型別不符時回 null)、Component、元件的節點清單與其上界。
+    /// 任何一跳取不到就回 null,不繼續解參考。
+    /// </summary>
+    private static unsafe AtkResNode* GetComponentNodeOrNull(AtkResNode* node, int index)
+    {
+        if (node == null) return null;
+        var componentNode = node->GetAsAtkComponentNode();
+        if (componentNode == null) return null;
+        var component = componentNode->Component;
+        if (component == null) return null;
+        var nodeList = component->UldManager.NodeList;
+        if (nodeList == null || index < 0 || index >= component->UldManager.NodeListCount) return null;
+        return nodeList[index];
     }
 
     private unsafe AtkUnitBase* GetVisibleAddonOrNull(string name, int expectedNodeCount = 0)
