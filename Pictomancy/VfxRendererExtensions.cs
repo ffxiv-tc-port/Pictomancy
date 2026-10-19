@@ -117,6 +117,7 @@ public static class VfxRendererExtensions
 
     public static bool AddCone(this VfxRenderer r, string id, Vector3 origin, float radius, float rotation, int angleWidth, Vector4? color = null)
     {
+        if (!PictoService.VfxAvailable) return false;
         var omen = GetOmenConeForAngle(angleWidth);
         if (omen != null)
             r.AddOmen(id, omen, origin, new(radius, DefaultHeight, radius), rotation, color);
@@ -132,6 +133,7 @@ public static class VfxRendererExtensions
 
     public static bool AddDonut(this VfxRenderer r, string id, Vector3 origin, float innerRadius, float outerRadius, Vector4? color = null)
     {
+        if (!PictoService.VfxAvailable) return false;
         var omen = GetDonutOmenForRadius(innerRadius, outerRadius);
         if (omen != null)
             r.AddOmen(id, omen, origin, new(outerRadius, DefaultHeight, outerRadius), 0, color);
@@ -140,6 +142,8 @@ public static class VfxRendererExtensions
 
     public static bool AddFan(this VfxRenderer r, string id, Vector3 origin, float innerRadius, float outerRadius, float minAngle, float maxAngle, Vector4? color = null)
     {
+        // 回傳值的意思是「有沒有畫出來」，呼叫端靠它決定要不要改用別的畫法。
+        if (!PictoService.VfxAvailable) return false;
         bool isCircle = maxAngle - minAngle >= 2 * MathF.PI - 0.000001;
         if (innerRadius <= 0)
         {

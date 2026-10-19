@@ -40,6 +40,8 @@ internal class FanFill : IDisposable
                 _circles = data._buffer.Map(ctx);
             }
 
+            internal void Reopen(RenderContext ctx, Data data) => _circles = data._buffer.Map(ctx);
+
             public void Dispose()
             {
                 _circles.Dispose();
@@ -71,7 +73,17 @@ internal class FanFill : IDisposable
             _buffer.Dispose();
         }
 
-        public Builder Map(RenderContext ctx) => new(ctx, this);
+        private Builder? _builder;
+
+        // 同 RenderBuffer.Map：一次只會有一個 Builder 開著，沿用同一個物件。
+        public Builder Map(RenderContext ctx)
+        {
+            if (_builder == null)
+                _builder = new(ctx, this);
+            else
+                _builder.Reopen(ctx, this);
+            return _builder;
+        }
 
         // Draw* should be called after FanFill.Bind set up its state
         public void DrawAll(RenderContext ctx)

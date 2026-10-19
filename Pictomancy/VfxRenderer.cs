@@ -29,6 +29,8 @@ public class VfxRenderer : IDisposable
 
     InterframeResourceTracker<Vfx> trackedVfx;
     InterframeResourceTracker<GameObjectVfx> trackedGOVfx;
+    // 遊戲沒建出來的鍵 → 重試額度；只留時間窗內的（過了就丟，與留著等價）。只在框架執行緒存取。
+    readonly Dictionary<string, VfxLifetimeWatch.RebuildBudget> failedCreates = new();
 
     public VfxRenderer()
     {
@@ -100,6 +102,7 @@ public class VfxRenderer : IDisposable
 
     private void CreateOrUpdateVfx(string id, string path, Vector3 position, Vector3 scale, float rotation, Vector4 color)
     {
+        if (!VfxFunctions.CheckAvailable()) return;
         var key = $"{id}##{path}";
         if (trackedVfx.IsTouched(key)) return;
 
@@ -108,14 +111,17 @@ public class VfxRenderer : IDisposable
             vfx.UpdateTransform(position, scale, rotation);
             vfx.UpdateColor(color);
         }
-        else
+        else if (MayCreate(key, nameof(Vfx)))
         {
-            trackedVfx.TouchNew(key, Vfx.Create(path, position, scale, rotation, color));
+            var created = Vfx.TryCreate(path, position, scale, rotation, color);
+            NoteCreateResult(key, created != null, nameof(Vfx), path);
+            if (created != null) trackedVfx.TouchNew(key, created);
         }
     }
 
     private void CreateOrUpdateVfx(string id, string path, IGameObject target, IGameObject source, Vector3 scale, Vector4 color)
     {
+        if (!VfxFunctions.CheckAvailable()) return;
         var key = $"{id}##{path}";
         if (trackedGOVfx.IsTouched(key)) return;
 
@@ -123,16 +129,42 @@ public class VfxRenderer : IDisposable
         {
             vfx.UpdateColor(color);
         }
-        else
+        else if (MayCreate(key, nameof(GameObjectVfx)))
         {
-            trackedGOVfx.TouchNew(key, GameObjectVfx.Create(path, target, source, scale, color));
+            var created = GameObjectVfx.TryCreate(path, target, source, scale, color);
+            NoteCreateResult(key, created != null, nameof(GameObjectVfx), path);
+            if (created != null) trackedGOVfx.TouchNew(key, created);
         }
+    }
+
+    // 遊戲沒建出來時不擲例外：照重建上限重試，被擋的幀不呼叫建立函式、不配置。
+    private bool MayCreate(string key, string owner)
+    {
+        if (!failedCreates.TryGetValue(key, out var budget)) return true;
+        var allowed = VfxLifetimeWatch.TryRetryCreate(ref budget, Environment.TickCount64, owner);
+        failedCreates[key] = budget;
+        return allowed;
+    }
+
+    private void NoteCreateResult(string key, bool created, string owner, string path)
+    {
+        if (created)
+        {
+            failedCreates.Remove(key);
+            return;
+        }
+        var first = VfxLifetimeWatch.NoteCreateFailed(Environment.TickCount64, owner, path);
+        failedCreates.TryAdd(key, first);
     }
 
     internal void Update()
     {
         trackedVfx.Update();
         trackedGOVfx.Update();
+        if (failedCreates.Count == 0) return;
+        var now = Environment.TickCount64;
+        foreach (var (key, budget) in failedCreates)
+            if (VfxLifetimeWatch.WindowExpired(budget, now)) failedCreates.Remove(key);
     }
 
     public void Dispose()

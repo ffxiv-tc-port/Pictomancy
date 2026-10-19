@@ -41,13 +41,15 @@ internal class Stroke : IDisposable
                 _lines = data._buffer.Map(ctx);
             }
 
+            internal void Reopen(RenderContext ctx, Data data) => _lines = data._buffer.Map(ctx);
+
             public void Dispose()
             {
                 _lines.Dispose();
             }
 
             public void Add(ref Instance inst) => _lines.Add(ref inst);
-            public void Add(Vector3[] world, float thickness, Vector4 color, bool closed)
+            public void Add(ReadOnlySpan<Vector3> world, float thickness, Vector4 color, bool closed)
             {
                 for (int i = 0; i < world.Length; i++)
                 {
@@ -84,7 +86,17 @@ internal class Stroke : IDisposable
             _buffer.Dispose();
         }
 
-        public Builder Map(RenderContext ctx) => new(ctx, this);
+        private Builder? _builder;
+
+        // 同 RenderBuffer.Map：一次只會有一個 Builder 開著，沿用同一個物件。
+        public Builder Map(RenderContext ctx)
+        {
+            if (_builder == null)
+                _builder = new(ctx, this);
+            else
+                _builder.Reopen(ctx, this);
+            return _builder;
+        }
 
         // Draw* should be called after Stroke.Bind set up its state
         public void DrawSubset(RenderContext ctx, int firstLine, int numLines)

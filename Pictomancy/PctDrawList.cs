@@ -10,7 +10,8 @@ public class PctDrawList : IDisposable
     internal readonly ImDrawListPtr _drawList;
     internal readonly List<Vector3> _path;
     internal readonly DXRenderer _renderer;
-    internal readonly ImGuiRenderer _fallbackRenderer;
+    // 只有描邊著色器編不起來（StrokeDegraded，載入後不會再變）才用得到；平常不建，省每幀一個物件。
+    internal readonly ImGuiRenderer? _fallbackRenderer;
     internal readonly AddonClipper _addonClipper;
     private PctTexture? _texture;
     internal bool Finalized => _texture != null;
@@ -18,13 +19,17 @@ public class PctDrawList : IDisposable
     internal PctDrawList(ImDrawListPtr drawlist, DXRenderer renderer, AddonClipper addonClipper)
     {
         _drawList = drawlist;
-        _path = new();
         _renderer = renderer;
         _addonClipper = addonClipper;
         _texture = null;
         _renderer.BeginFrame();
-        _fallbackRenderer = new(drawlist);
+        if (renderer.StrokeDegraded)
+            _fallbackRenderer = new(drawlist);
+        // Rented last so a throwing BeginFrame never strands the shared buffer.
+        _path = renderer.RentPath();
     }
+
+    private bool _pathReturned;
 
     public PctTexture DrawToTexture()
     {
@@ -40,6 +45,11 @@ public class PctDrawList : IDisposable
 
     public void Dispose()
     {
+        if (!_pathReturned)
+        {
+            _pathReturned = true;
+            _renderer.ReturnPath(_path);
+        }
         if (PictoService.DrawList == this) PictoService.DrawList = null;
         if (!PictoService.Hints.AutoDraw) return;
 
@@ -108,7 +118,7 @@ public class PctDrawList : IDisposable
     {
         if (_renderer.StrokeDegraded)
         {
-            _fallbackRenderer.DrawStroke(_path, thickness, color, (flags & PctStrokeFlags.Closed) > 0);
+            _fallbackRenderer!.DrawStroke(_path, thickness, color, (flags & PctStrokeFlags.Closed) > 0);
         }
         else
         {

@@ -11,7 +11,15 @@ internal class RenderContext : IDisposable
 
     public unsafe RenderContext()
     {
-        Device = new((nint)FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Device.Instance()->D3D11Forwarder);
+        // Device.Instance() 是 isPointer:true 的靜態位址，槽裡的值可以合法為 null。
+        // fail-closed：取不到裝置就擲可攔截的受控例外，由呼叫端（PictoService.InitializeDxRenderer）停用繪製。
+        var device = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Device.Instance();
+        if (device == null)
+            throw new InvalidOperationException("[Pictomancy] Graphics Device instance is null; cannot create render context.");
+        if (device->D3D11Forwarder == null)
+            throw new InvalidOperationException("[Pictomancy] Graphics Device has no D3D11Forwarder; cannot create render context.");
+
+        Device = new((nint)device->D3D11Forwarder);
         Context = new(Device);
 
         try

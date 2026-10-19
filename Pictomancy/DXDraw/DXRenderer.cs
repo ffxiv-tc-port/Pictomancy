@@ -1,5 +1,6 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Device = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Device;
 
 namespace Pictomancy.DXDraw;
@@ -38,6 +39,25 @@ internal class DXRenderer : IDisposable
     public bool FanDegraded { get; private set; }
 
     public bool StrokeDegraded { get; private set; }
+
+    // One path buffer kept across frames. A draw list holds it from construction to Dispose;
+    // a second draw list alive at the same time gets a fresh list, as before.
+    private List<Vector3>? _pathScratch = new();
+
+    internal List<Vector3> RentPath()
+    {
+        var path = _pathScratch;
+        if (path == null) return new();
+        _pathScratch = null;
+        path.Clear();
+        return path;
+    }
+
+    internal void ReturnPath(List<Vector3> path)
+    {
+        path.Clear();
+        _pathScratch = path;
+    }
 
     public DXRenderer()
     {
@@ -99,9 +119,21 @@ internal class DXRenderer : IDisposable
         RenderContext.Dispose();
     }
 
+    /// <summary>
+    /// 這一幀有沒有可用的原生繪製狀態。Device.Instance() 是 isPointer:true 的靜態位址，取出來的值可以合法為 null
+    /// （例如裝置重建、切換解析度的空窗），此時整幀不畫（fail-closed）。
+    /// 刻意不對 Control.Instance() 判空：它是 isPointer:false，特徵碼失配時擲例外、成功時回傳靜態結構本身的位址，不會回 null。
+    /// </summary>
+    internal static unsafe bool IsRenderStateAvailable() => Device.Instance() != null;
+
     internal unsafe void BeginFrame()
     {
         var device = Device.Instance();
+        // 已由 PictoService.Draw() 的 IsRenderStateAvailable() 閘門擋掉；這裡是縱深防禦，
+        // 寧可擲受控例外，也不要對 null 解參考換來攔不到的 AccessViolationException。
+        if (device == null)
+            throw new InvalidOperationException("[Pictomancy] Graphics Device instance became null during BeginFrame.");
+
         ViewportSize = new(device->Width, device->Height);
         ViewProj = *(SharpDX.Matrix*)&Control.Instance()->ViewProjectionMatrix;
 
@@ -228,11 +260,12 @@ internal class DXRenderer : IDisposable
     }
     private FanFill.Data.Builder GetFanFills() => _fanFillDynamicBuilder ??= _fanFillDynamicData.Map(RenderContext);
 
-    public void DrawStroke(IEnumerable<Vector3> world, float thickness, uint color, bool closed = false)
+    public void DrawStroke(List<Vector3> world, float thickness, uint color, bool closed = false)
     {
         if (!StrokeDegraded)
         {
-            GetStroke().Add(world.ToArray(), thickness, color.ToVector4(), closed);
+            // 直接讀清單底下的陣列，不為每一筆描邊另外複製一份；Add 期間清單不會被改動。
+            GetStroke().Add(CollectionsMarshal.AsSpan(world), thickness, color.ToVector4(), closed);
         }
     }
 
