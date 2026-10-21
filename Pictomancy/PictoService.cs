@@ -145,8 +145,8 @@ public class PictoService
     {
         if (_dxRenderer == null) return null;
         Hints = hints ?? new();
-        if (Hints.DrawInCutscene || IsInCutscene()) return null;
-        if (Hints.DrawWhenFaded || IsFaded()) return null;
+        if (!Hints.DrawInCutscene && IsInCutscene()) return null;
+        if (!Hints.DrawWhenFaded && IsFaded()) return null;
         // Control.Instance() 靠特徵碼解析，解不出時 BeginFrame 與 ImGuiRenderer 每框都會擲；整框不畫。
         if (!IsControlResolved())
         {
