@@ -6,7 +6,7 @@
 
 ## 艦隊唯一的 Pictomancy 正本
 
-艦隊裡所有用到 Pictomancy 的插件，子模組（路徑 `ffxiv_pictomancy`）都指向**本 repo 的 `tc-7.20` 分支**。
+艦隊裡所有用到 Pictomancy 的插件，子模組（路徑 `ffxiv_pictomancy`）都指向**本 repo 的 `tc-7.30` 分支**。
 修正只改這裡，再把各消費端的子模組對齊到新頂端。
 
 原本另外兩個 repo `Pictomancy`、`ffxiv_pictomancy-Limiana` 的內容已經併進本 repo，之後不再更新。
