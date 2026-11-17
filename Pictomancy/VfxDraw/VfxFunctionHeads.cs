@@ -25,10 +25,10 @@ internal static class VfxFunctionHeads
         // push rbx ; sub rsp,20h ; movaps xmm0,[常數] ; xor edx,edx ; mov eax,[rcx+X] ; mov rbx,rcx ; movups [rcx],xmm0
         new("VfxInitDataCtor", VfxInitDataCtorCall,
             "40 53 48 83 EC 20 0F 28 05 ?? ?? ?? ?? 33 D2 8B 81 ?? ?? ?? ?? 48 8B D9 0F 11 01"),
-        // 存 rbx/rsi/rdi/r12、push rbp/r14/r15 ; 先比 VFX 數量上限 ; a3/a4 取 byte ; rbx=init、rdi=path（孿生函式的開頭不同）
+        // 存 rbx/rbp/rsi、push rdi/r14/r15、sub rsp 用 imm32 ; 先比 VFX 數量上限 ; a3/a4 取 byte ; rbx=init、rdi=path（孿生函式只差在 sub rsp 用 imm8）
         new("CreateVfx", CreateVfxCall,
-            "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 4C 89 64 24 20 55 41 56 41 57 48 8D 6C 24 ?? 48 81 EC ?? ?? ?? ?? " +
-            "81 3D ?? ?? ?? ?? ?? ?? ?? ?? 45 0F B6 F1 45 0F B6 F8 48 8B DA 48 8B F9"),
+            "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 81 EC ?? ?? ?? ?? " +
+            "81 3D ?? ?? ?? ?? ?? ?? ?? ?? 41 0F B6 E9 45 0F B6 F0 48 8B DA 48 8B F9"),
         // rcx=path、rdx=target、r8=source、xmm3=a4、第 5 個參數取 byte ; 之後判 target 是否為空
         new("CreateGameObjectVfx", CreateGameObjectVfxCall,
             "40 53 55 56 57 48 81 EC ?? ?? ?? ?? 0F 29 B4 24 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? " +
